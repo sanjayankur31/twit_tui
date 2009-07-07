@@ -1,0 +1,328 @@
+head	1.17;
+access;
+symbols;
+locks; strict;
+comment	@ * @;
+
+
+1.17
+date	2009.05.24.07.51.00;	author Ankur;	state Exp;
+branches;
+next	1.16;
+
+1.16
+date	2009.05.24.07.50.19;	author Ankur;	state Exp;
+branches;
+next	1.15;
+
+1.15
+date	2009.05.24.07.49.12;	author Ankur;	state Exp;
+branches;
+next	1.14;
+
+1.14
+date	2009.05.24.07.46.18;	author Ankur;	state Exp;
+branches;
+next	1.13;
+
+1.13
+date	2009.05.24.07.44.45;	author Ankur;	state Exp;
+branches;
+next	1.12;
+
+1.12
+date	2009.05.24.07.43.12;	author Ankur;	state Exp;
+branches;
+next	1.11;
+
+1.11
+date	2009.05.24.07.42.15;	author Ankur;	state Exp;
+branches;
+next	1.10;
+
+1.10
+date	2009.05.24.07.39.57;	author Ankur;	state Exp;
+branches;
+next	1.9;
+
+1.9
+date	2009.05.24.07.39.23;	author Ankur;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2009.05.24.07.35.12;	author Ankur;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2009.05.24.07.34.13;	author Ankur;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2009.05.24.07.32.57;	author Ankur;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2009.05.24.07.30.53;	author Ankur;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2009.05.24.07.27.55;	author Ankur;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2009.05.24.07.19.20;	author Ankur;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2009.05.24.06.54.57;	author Ankur;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2009.05.19.18.57.16;	author Ankur;	state Exp;
+branches;
+next	;
+
+
+desc
+@error window
+@
+
+
+1.17
+log
+@*** empty log message ***
+@
+text
+@/* Error handlong function 
+ * starts a new win and prints the error message. 
+ * waits for user response, cleans up and exits the program 
+ * */
+#include "errorapp.h"
+
+void errorapp(char *error_message,infostruct *user, int error_code){
+	char *header = "*** Error ***";
+	WINDOW *error_win;
+	WINDOW *msgwind;
+
+	clear();
+	refresh();
+	
+	error_win = newwin(8,80,user->row/2, (user->col - 80)/2);
+	msgwind = derwin(error_win,6,76,1,2);
+	box(error_win,0,0);
+	wattron(error_win,A_BOLD);
+	mvwprintw(error_win,1,(getmaxx(error_win) - (strlen(header)))/2,"%s",header);
+	wattroff(error_win,A_BOLD);			
+	wrefresh(error_win);
+
+	mvwprintw(msgwind,2,0, "Error : %s",error_message);
+	wprintw(msgwind,"\n\nPress a key to exit");
+	wrefresh(msgwind);
+	wgetch(error_win);
+	delwin(error_win);
+
+
+	endwin();
+	curl_global_cleanup();				/* curl closed,clean up */
+	unlink(".twit_ui_db");
+	exit(error_code);
+}
+
+
+@
+
+
+1.16
+log
+@*** empty log message ***
+@
+text
+@d16 1
+a16 1
+	msgwind = derwin(error_win,4,76,1,2);
+@
+
+
+1.15
+log
+@*** empty log message ***
+@
+text
+@d23 1
+a23 1
+	mvwprintw(msgwind,2,(getmaxx(msgwind) - strlen(header))/2, "Error : %s",error_message);
+@
+
+
+1.14
+log
+@*** empty log message ***
+@
+text
+@d16 1
+a16 1
+	msgwind = derwin(error_win,4,78,1,2);
+d23 2
+a24 2
+	mvwprintw(msgwind,1,1, "Error : %s",error_message);
+	wprintw(msgwind,"\nPress a key to exit");
+@
+
+
+1.13
+log
+@*** empty log message ***
+@
+text
+@d16 1
+a16 1
+	msgwind = derwin(error_win,4,78,1,3);
+@
+
+
+1.12
+log
+@*** empty log message ***
+@
+text
+@d21 1
+d24 1
+a25 1
+	wrefresh(error_win);
+@
+
+
+1.11
+log
+@*** empty log message ***
+@
+text
+@d22 1
+a22 1
+	mvwprintw(msgwind,1,0, "Error : %s",error_message);
+@
+
+
+1.10
+log
+@*** empty log message ***
+@
+text
+@d15 1
+a15 1
+	error_win = newwin(8,80,user->row/2, (user->col - 45)/2);
+d22 1
+a22 1
+	mvwprintw(msgwind,0,0, "Error : %s",error_message);
+@
+
+
+1.9
+log
+@added a subwindow for printing the message
+@
+text
+@d16 1
+a16 1
+	msgiwnd = derwin(error_win,4,78,1,3);
+@
+
+
+1.8
+log
+@boxed
+@
+text
+@d9 3
+d14 3
+a16 2
+	WINDOW *error_win;
+	error_win = newwin(6,50,user->row/2, (user->col - 45)/2);
+d21 3
+a23 1
+	mvwprintw(error_win,3,0, "Error : %s",error_message);
+d27 2
+@
+
+
+1.7
+log
+@*** empty log message ***
+@
+text
+@d13 1
+@
+
+
+1.6
+log
+@*** empty log message ***
+@
+text
+@d14 1
+a14 1
+	mvwprintw(error_win,1,(getmaxy(error_win) - (strlen(header)))/2,"%s",header);
+@
+
+
+1.5
+log
+@*** empty log message ***
+@
+text
+@d14 1
+a14 1
+	mvwprintw(error_win,0,(getmaxy(error_win) - (strlen(header)))/2,"%s",header);
+d16 1
+a16 1
+	mvwprintw(error_win,2,0, "Error : %s",error_message);
+@
+
+
+1.4
+log
+@added header
+@
+text
+@d14 1
+a14 1
+	mvwprinw(error_win,0,(getmaxy(error_win) - (strlen(header)))/2,"%s",header);
+@
+
+
+1.3
+log
+@cleared the screen for errors to be visible..
+@
+text
+@d8 1
+d13 3
+@
+
+
+1.2
+log
+@just changed the print location of the message
+@
+text
+@d8 2
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d10 1
+a10 1
+	mvwprintw(error_win,2,(45 - strlen("Error : ") + strlen(error_message))/2 , "Error : %s",error_message);
+@

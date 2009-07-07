@@ -1,0 +1,894 @@
+head	1.16;
+access;
+symbols;
+locks; strict;
+comment	@ * @;
+
+
+1.16
+date	2009.06.17.15.47.28;	author Ankur;	state Exp;
+branches;
+next	1.15;
+
+1.15
+date	2009.06.17.12.08.54;	author Ankur;	state Exp;
+branches;
+next	1.14;
+
+1.14
+date	2009.06.16.20.26.49;	author Ankur;	state Exp;
+branches;
+next	1.13;
+
+1.13
+date	2009.06.16.19.43.29;	author Ankur;	state Exp;
+branches;
+next	1.12;
+
+1.12
+date	2009.06.15.17.36.46;	author Ankur;	state Exp;
+branches;
+next	1.11;
+
+1.11
+date	2009.06.15.08.42.58;	author Ankur;	state Exp;
+branches;
+next	1.10;
+
+1.10
+date	2009.05.24.18.43.40;	author Ankur;	state Exp;
+branches;
+next	1.9;
+
+1.9
+date	2009.05.24.17.54.20;	author Ankur;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2009.05.24.08.08.41;	author Ankur;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2009.05.24.07.29.35;	author Ankur;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2009.05.24.07.28.57;	author Ankur;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2009.05.24.07.27.55;	author Ankur;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2009.05.23.21.09.11;	author Ankur;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2009.05.19.18.57.16;	author Ankur;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2009.05.16.21.29.03;	author Ankur;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2009.05.16.20.20.53;	author Ankur;	state Exp;
+branches;
+next	;
+
+
+desc
+@main test file
+@
+
+
+1.16
+log
+@*** empty log message ***
+@
+text
+@#include "test.h"
+#include "errorcodes.h"
+
+int main(){
+	infostruct user;
+	int choice;
+	char *time_line  = "http://twitter.com/statuses/friends_timeline.xml";
+	char *dm = "http://twitter.com/direct_messages.xml";
+	char *dm_sent = "http://twitter.com/direct_messages/sent.xml";
+	char *xml_to_download;
+	char error[CURL_ERROR_SIZE + 20];
+	int stat;
+	WINDOW *main_pad;
+	WINDOW *d_pad;
+	WINDOW *d_pad_sent;
+	int pad_use = 0;
+	int ret_code;
+	int *line_index;
+	
+	curl_global_init(CURL_GLOBAL_ALL);		/* curl initialized, code now */
+	initscr();
+	idlok(stdscr,TRUE);
+	keypad(stdscr, TRUE);
+	scrollok(stdscr, TRUE);	
+	start_color();
+	if(!has_colors()){
+		printf("Your terminal does not support color. Exiting\n");
+		endwin();
+		exit(E_TERMINAL_NO_COLOR);
+	}
+	use_default_colors();
+
+	getmaxyx(stdscr,user.row,user.col);
+
+	/* color pairs defs to go here */
+	init_pair(1,COLOR_CYAN,-1);
+	init_pair(2,COLOR_RED,-1);
+	init_pair(3,COLOR_BLUE,-1);
+	init_pair(4,COLOR_BLACK,-1);
+	init_pair(5,COLOR_MAGENTA,-1);
+	init_pair(6,COLOR_YELLOW,-1);
+	init_pair(7,COLOR_GREEN,COLOR_WHITE);
+
+	/* make the database and the table */	
+	if((ret_code = create_table()))
+		errorapp("Error while creating tweet db table",&user,ret_code);
+
+	if((ret_code = create_table_dm(1)))
+		errorapp("Error while creating dm db table",&user,ret_code);
+
+	if((ret_code = create_table_dm(2)))
+		errorapp("Error while creating dm sent db table",&user,ret_code);
+
+	/* the app begins doing things here */
+	clear();
+	refresh();
+	strcpy(user.username,"0");
+	strcpy(user.password,"0");
+	strcpy(user.proxy,"0");
+	strcpy(user.proxy_port,"0");
+	strcpy(user.proxy_username,"0");
+	strcpy(user.proxy_password,"0");
+
+	greet(user);
+	sleep(2);
+	refresh();
+	parse_file(&user);
+
+	if(!strcmp(user.username,"0"))
+		authenticate(&user);
+	noecho();
+	
+	main_pad = newpad(1000,COLS);
+	
+
+	if(main_pad == 0)
+		errorapp("Error while creating tweet pad, Not enough memory?",&user,E_PAD_NO_CREATE);
+	
+	d_pad = newpad(1000,COLS);
+
+	if(d_pad == 0)
+		errorapp("Error while creating dm pad, Not enough Memory?",&user,E_PAD_NO_CREATE);
+
+	d_pad_sent = newpad(1000,COLS);
+
+	if(d_pad_sent == 0)
+		errorapp("Error while creating dm pad, Not enough Memory?",&user,E_PAD_NO_CREATE);
+
+	/* im assuming that a valid username password will work every time :D */
+	if((ret_code = update_dm(1,user,dm,error))){
+		if (ret_code == CURLE_HTTP_RETURNED_ERROR){
+			strcat(error,"\nPlease check your user name, password and retry");
+		}
+		errorapp(error,&user,E_NO_UPDATE);
+	}
+	if((ret_code = update_dm(2,user,dm_sent,error))){
+		if (ret_code == CURLE_HTTP_RETURNED_ERROR){
+			strcat(error,"\nPlease check your user name, password and retry");
+		}
+		errorapp(error,&user,E_NO_UPDATE);
+	}
+	if((ret_code = update(user,time_line,error))){
+		if (ret_code == CURLE_HTTP_RETURNED_ERROR){
+			strcat(error,"\nPlease check your user name, password and retry");
+		}
+		errorapp(error,&user,E_NO_UPDATE);
+	}
+	if((ret_code = display_time_line(user.username,main_pad)))return ret_code;
+
+		
+
+	do {	
+		/* check this */
+					
+		choice = getch();
+		xml_to_download = (char*)malloc(sizeof(char) * 150);
+
+		switch(choice){
+			case 'Q':
+				break;
+			case '1':
+				display_time_line(user.username,main_pad);
+				pad_use = 0;
+				break;
+
+			case '2':
+				display_dm(1,user.username,d_pad);
+				pad_use = 1;
+				break;
+			case '3':
+				display_dm(2,user.username,d_pad_sent);
+				pad_use = 2;
+				break;
+			case 'u':
+				strcpy(xml_to_download,time_line);
+				sprintf((xml_to_download + strlen(xml_to_download)),"?since_id=%.0f",get_max_id());
+				if(update(user,xml_to_download,error))
+					errorapp(error,&user,E_NO_UPDATE);
+
+				strcpy(xml_to_download,dm);
+				sprintf((xml_to_download + strlen(xml_to_download)),"?since_id=%.0f",get_max_id_dm(1));
+				if(update_dm(1,user,xml_to_download,error))
+					errorapp(error,&user,E_NO_UPDATE);
+					
+				strcpy(xml_to_download,dm_sent);
+				sprintf((xml_to_download + strlen(xml_to_download)),"?since_id=%.0f",get_max_id_dm(2));
+				if(update_dm(2,user,xml_to_download,error))
+					errorapp(error,&user,E_NO_UPDATE);
+
+				if(pad_use == 0){
+					if((ret_code = display_time_line(user.username,main_pad)))return ret_code;
+					break;
+				}
+				else if(pad_use == 1){
+					if((ret_code = display_dm(1,user.username,d_pad))) return ret_code;
+					break;
+				}
+				else if(pad_use == 2){
+
+					if((ret_code = display_dm(2,user.username,d_pad_sent))) return ret_code;
+					break;
+				}
+			case 's':
+				if(pad_use == 0){
+					stat = send_update(user,error);
+					if(stat != 0 && stat != 2)
+						errorapp(error,&user,E_NO_SEND_UPDATE);
+					if(stat == 0){
+						strcpy(xml_to_download,time_line);
+						sprintf((xml_to_download + strlen(xml_to_download)),"?since_id=%.0f",get_max_id());
+						if(update(user,xml_to_download,error))
+							errorapp(error,&user,E_NO_UPDATE);
+						pad_use = 0;
+											
+						if((ret_code = display_time_line(user.username,main_pad)))return ret_code;
+					}
+					else 
+						if((ret_code = display_time_line(user.username,main_pad)))return ret_code;
+				}
+				
+				else if (pad_use == 1 || pad_use == 2){
+					stat = send_dm(user,error);
+					if(stat != 0 && stat != 2)
+						errorapp(error,&user,E_NO_SEND_REPLY);
+					if(stat == 0){
+						if((display_dm(2,user.username,d_pad_sent))) return ret_code;
+						strcpy(xml_to_download,dm_sent);
+						sprintf((xml_to_download + strlen(xml_to_download)),"?since_id=%.0f",get_max_id_dm(2));
+						if(update_dm(2,user,xml_to_download,error))
+							errorapp(error,&user,E_NO_UPDATE);
+						pad_use = 2;
+					}
+				
+				if((display_dm(2,user.username,d_pad_sent))) return ret_code;
+				}
+				break;
+			case 'r':
+				if(pad_use == 0){
+					stat = send_reply(user,error);
+					if(stat != 0 && stat != 2)
+						errorapp(error,&user,E_NO_SEND_REPLY);
+					strcpy(xml_to_download,time_line);
+					sprintf((xml_to_download + strlen(xml_to_download)),"?since_id=%.0f",get_max_id());
+					if(update(user,xml_to_download,error))
+						errorapp(error,&user,E_NO_UPDATE);
+					if((ret_code = display_time_line(user.username,main_pad)))return ret_code;
+				
+				}
+				break;
+			/*case 'F':
+				if(pad_use == 0){
+					stat = fav(user,error);
+					if(stat)
+						errorapp(error,&user,E_NO_FAV);*/
+
+			case 't':
+				if(pad_use == 0){
+					stat = retweet(user,error);
+					if(stat != 0 && stat != 2)
+						errorapp(error,&user,E_NO_RETWEET);
+					strcpy(xml_to_download,time_line);
+					sprintf((xml_to_download + strlen(xml_to_download)),"?since_id=%.0f",get_max_id());
+					if(update(user,xml_to_download,error))
+						errorapp(error,&user,E_NO_UPDATE);
+					if((ret_code = display_time_line(user.username,main_pad)))return ret_code;
+					break;
+				}
+			case 'D':
+				if(pad_use == 0){
+					stat = destroy(0,user,error);
+					if(stat)
+						errorapp(error,&user,E_NO_SEND_UPDATE);
+					else{
+						strcpy(xml_to_download,time_line);
+						drop_table();
+						create_table();
+						if(update(user,xml_to_download,error))
+							errorapp(error,&user,E_NO_UPDATE);
+											
+						if((ret_code = display_time_line(user.username,main_pad)))return ret_code;
+					}
+				}
+				else if(pad_use == 1){
+					stat = destroy(1,user,error);
+					if(stat)
+						errorapp(error,&user,E_NO_SEND_UPDATE);
+					else{
+						strcpy(xml_to_download,dm);
+						drop_table_dm(1);
+						create_table_dm(1);
+						if(update_dm(1,user,xml_to_download,error))
+							errorapp(error,&user,E_NO_UPDATE);
+											
+						if((ret_code = display_dm(1,user.username,d_pad)))return ret_code;
+					}
+				}
+				else if(pad_use == 2){
+					stat = destroy(2,user,error);
+					if(stat)
+						errorapp(error,&user,E_NO_SEND_UPDATE);
+					else{
+						strcpy(xml_to_download,dm_sent);
+						drop_table_dm(2);
+						create_table_dm(2);
+						if(update_dm(2,user,xml_to_download,error))
+							errorapp(error,&user,E_NO_UPDATE);
+											
+						if((ret_code = display_dm(2,user.username,d_pad_sent)))return ret_code;
+					}
+				}
+				
+				break;
+							
+			case KEY_UP:
+				if(pad_use == 0){
+					prefresh(main_pad,getcury(main_pad) -1,0,3,0,getmaxy(stdscr) -1,getmaxx(stdscr) -1);
+					wmove(main_pad,getcury(main_pad) -1,getmaxx(stdscr)/2);
+				}
+				else if(pad_use == 1){
+					prefresh(d_pad,getcury(d_pad) -1,0,3,0,getmaxy(stdscr) -1,getmaxx(stdscr) -1);
+					wmove(d_pad,getcury(d_pad) -1,getmaxx(stdscr)/2);
+				}
+				else if(pad_use == 2){
+					prefresh(d_pad_sent,getcury(d_pad_sent) -1,0,3,0,getmaxy(stdscr) -1,getmaxx(stdscr) -1);
+					wmove(d_pad_sent,getcury(d_pad_sent) -1,getmaxx(stdscr)/2);
+				}
+				break;
+			case KEY_DOWN:
+				if(pad_use == 0){
+					prefresh(main_pad,getcury(main_pad) + 1,0,3,0,getmaxy(stdscr) -1,getmaxx(stdscr) -1);
+					wmove(main_pad,getcury(main_pad) +1,getmaxx(stdscr)/2);
+				}
+				else if(pad_use == 1){
+					prefresh(d_pad,getcury(d_pad) + 1,0,3,0,getmaxy(stdscr) -1,getmaxx(stdscr) -1);
+					wmove(d_pad,getcury(d_pad) +1,getmaxx(stdscr)/2);
+				}
+				else if(pad_use == 2){
+					prefresh(d_pad_sent,getcury(d_pad_sent) + 1,0,3,0,getmaxy(stdscr) -1,getmaxx(stdscr) -1);
+					wmove(d_pad_sent,getcury(d_pad_sent) +1,getmaxx(stdscr)/2);
+				}
+				break;
+			case KEY_LEFT:
+				move(getcury(stdscr),getcurx(stdscr) - 1);
+				refresh();
+				break;
+			case KEY_RIGHT:
+				move(getcury(stdscr),getcurx(stdscr) + 1);
+				refresh();
+				break;
+
+		}
+		free(xml_to_download);
+	}while(choice != 'Q');
+
+	delwin(main_pad);
+	endwin();
+	curl_global_cleanup();				/* curl closed,clean up */
+	unlink(".twit_ui_db");
+	exit(EXIT_SUCCESS);
+}
+@
+
+
+1.15
+log
+@*** empty log message ***
+@
+text
+@d57 7
+d65 3
+d69 1
+a69 1
+	if(parse_file(&user))
+d119 1
+a119 1
+			case 'q':
+d313 1
+a313 1
+	}while(choice != 'q');
+@
+
+
+1.14
+log
+@wrking
+@
+text
+@d48 1
+a48 1
+	if((ret_code = create_table_dm()))
+d51 3
+d165 1
+a166 2
+					if((ret_code = display_time_line(user.username,main_pad)))return ret_code;
+					
+d200 6
+a205 1
+			
+d218 45
+@
+
+
+1.13
+log
+@made minor changes..
+@
+text
+@d10 1
+a10 1
+	char xml_to_download[70];
+d16 1
+a16 1
+	int pad_use = 1;
+d103 1
+a155 1
+						display_time_line(user.username,main_pad);		/* refresh the screen with current data */
+d157 1
+d160 1
+a160 2
+						if((ret_code = display_time_line(user.username,main_pad)))return ret_code;
+						pad_use = 1;
+d163 1
+a178 1
+						if((display_dm(2,user.username,d_pad_sent))) return ret_code;
+d182 1
+d191 1
+d205 1
+d250 1
+@
+
+
+1.12
+log
+@*** empty log message ***
+@
+text
+@d8 2
+d15 1
+d64 11
+a74 1
+		errorapp("Error while creating main pad",&user,E_PAD_NO_CREATE);
+d77 13
+a89 1
+	if((ret_code = update(user,time_line,error,main_pad))){
+d95 2
+a100 2
+		strcpy(xml_to_download,time_line);
+		sprintf((xml_to_download + strlen(xml_to_download)),"?since_id=%.0f",get_max_id());
+d107 13
+a119 1
+			case 1:
+d121 13
+a133 1
+				if(update(user,xml_to_download,error,main_pad))
+d135 14
+a148 2
+				pad_use = 1;
+				break;
+d150 32
+a181 8
+				stat = send_update(user,error);
+				if(stat != 0 && stat != 2)
+					errorapp(error,&user,E_NO_SEND_UPDATE);
+				if(stat == 0){
+					display_time_line(user.username,main_pad);		/* refresh the screen with current data */
+					if(update(user,xml_to_download,error,main_pad))
+						errorapp(error,&user,E_NO_UPDATE);
+										
+a182 3
+				pad_use = 1;
+				else 
+					display_time_line(user.username,main_pad);		/* refresh the screen with current data */
+d185 10
+a194 6
+			stat = send_reply(user,error);
+				if(stat != 0 && stat != 2)
+					errorapp(error,&user,E_NO_SEND_REPLY);
+				if(update(user,xml_to_download,error,main_pad))
+					errorapp(error,&user,E_NO_UPDATE);
+				pad_use = 1;
+d196 1
+d198 10
+a207 13
+			stat = retweet(user,error);
+				if(stat != 0 && stat != 2)
+					errorapp(error,&user,E_NO_RETWEET);
+				
+				if(update(user,xml_to_download,error,main_pad))
+					errorapp(error,&user,E_NO_UPDATE);
+				pad_use = 1
+
+				break;
+			case 2:
+			case 'd':
+				/*direct_message();*/
+				break;
+d210 1
+a210 1
+				if(pad_use == 1){
+d214 1
+a214 1
+				else if(pad_use == 2){
+d218 4
+d224 1
+a224 1
+				if(pad_use == 1){
+d228 1
+a228 1
+				else if(pad_use == 2){
+d232 4
+@
+
+
+1.11
+log
+@*** empty log message ***
+@
+text
+@d43 4
+a46 1
+		errorapp("Error while creating db table",&user,ret_code);
+d58 1
+a58 1
+	/* cols for tweets and cols for direct messages */
+d63 1
+a63 1
+	/* im assuming that a valic username password will work every time :D */
+@
+
+
+1.10
+log
+@corrected echo
+@
+text
+@a5 1
+	/* tells us if its the first time or not */
+d12 2
+d55 1
+d79 1
+d83 1
+d93 1
+a93 1
+					
+d95 1
+d105 1
+d114 1
+d117 1
+d123 8
+a130 2
+				prefresh(main_pad,getcury(main_pad) -1,0,3,0,getmaxy(stdscr) -1,getmaxx(stdscr) -1);
+				wmove(main_pad,getcury(main_pad) -1,getmaxx(stdscr)/2);
+d133 8
+a140 2
+				prefresh(main_pad,getcury(main_pad) + 1,0,3,0,getmaxy(stdscr) -1,getmaxx(stdscr) -1);
+				wmove(main_pad,getcury(main_pad) +1,getmaxx(stdscr)/2);
+@
+
+
+1.9
+log
+@parse_file
+@
+text
+@d51 1
+@
+
+
+1.8
+log
+@*** empty log message ***
+@
+text
+@d49 2
+a50 1
+	authenticate(&user);
+@
+
+
+1.7
+log
+@*** empty log message ***
+@
+text
+@d56 1
+@
+
+
+1.6
+log
+@*** empty log message ***
+@
+text
+@d61 1
+@
+
+
+1.5
+log
+@added header
+@
+text
+@d59 1
+@
+
+
+1.4
+log
+@working on removing the requirement of entering a sno
+@
+text
+@d56 3
+a58 1
+	if(update(user,time_line,error,main_pad))
+@
+
+
+1.3
+log
+@added errors
+@
+text
+@d14 1
+@
+
+
+1.2
+log
+@deleted
+@
+text
+@d2 1
+a2 1
+
+d13 1
+d24 1
+a24 1
+		return 1;
+d40 3
+a42 6
+	if(create_table()){
+		endwin();
+		curl_global_cleanup();				/* curl closed,clean up */
+		unlink(".twit_ui_db");
+		return 1;
+	}
+d52 2
+a53 12
+	if(main_pad == 0){
+		clear();
+		mvprintw(10,10,"Error occured while creating pad : %s",error);
+		refresh();
+		sleep(3);
+		/* until i make an error function */
+		endwin();
+		curl_global_cleanup();				/* curl closed,clean up */
+		unlink(".twit_ui_db");
+		return 1;
+		
+	}
+d55 2
+a56 10
+	if(update(user,time_line,error,main_pad)){
+		clear();
+		mvprintw(10,10,"Error occured while getting data : %s",error);
+		refresh();
+		sleep(3);
+		/* until i make an error function */
+		endwin();
+		curl_global_cleanup();				/* curl closed,clean up */
+		unlink(".twit_ui_db");
+		return 1;
+a57 1
+	}
+d70 2
+a71 11
+				if(update(user,xml_to_download,error,main_pad)){
+					clear();
+					mvprintw(10,10,"Error occured while getting data : %s",error);
+					refresh();
+					sleep(3);
+					/* until i make an error function */
+					endwin();
+					curl_global_cleanup();				/* curl closed,clean up */
+					unlink(".twit_ui_db");
+					return 1;
+				}
+d75 2
+a76 11
+				if(stat != 0 && stat != 2){
+					clear();
+					mvprintw(10,10,"Error occured while sending update : %s",error);
+					refresh();
+					sleep(3);
+					/* until i make an error function */
+					endwin();
+					curl_global_cleanup();				/* curl closed,clean up */
+					unlink(".twit_ui_db");
+					return 1;
+				}
+d79 3
+a81 11
+					if(update(user,xml_to_download,error,main_pad)){
+						clear();
+						mvprintw(10,10,"Error occured while getting data : %s",error);
+						refresh();
+						sleep(3);
+						/* until i make an error function */
+						endwin();
+						curl_global_cleanup();				/* curl closed,clean up */
+						unlink(".twit_ui_db");
+						return 1;
+					}
+d88 4
+a91 23
+				if(stat != 0 && stat != 2){
+					clear();
+					mvprintw(10,10,"Error occured while sending reply : %s",error);
+					refresh();
+					sleep(3);
+					/* until i make an error function */
+					endwin();
+					curl_global_cleanup();				/* curl closed,clean up */
+					unlink(".twit_ui_db");
+					return 1;
+				}
+				/*reply();*/
+				if(update(user,xml_to_download,error,main_pad)){
+					clear();
+					mvprintw(10,10,"Error occured while getting data : %s",error);
+					refresh();
+					sleep(3);
+					/* until i make an error function */
+					endwin();
+					curl_global_cleanup();				/* curl closed,clean up */
+					unlink(".twit_ui_db");
+					return 1;
+				}
+d95 6
+a100 23
+				if(stat != 0 && stat != 2){
+					clear();
+					mvprintw(10,10,"Error occured while sending reply : %s",error);
+					refresh();
+					sleep(3);
+					/* until i make an error function */
+					endwin();
+					curl_global_cleanup();				/* curl closed,clean up */
+					unlink(".twit_ui_db");
+					return 1;
+				}
+				/*reply();*/
+				if(update(user,xml_to_download,error,main_pad)){
+					clear();
+					mvprintw(10,10,"Error occured while getting data : %s",error);
+					refresh();
+					sleep(3);
+					/* until i make an error function */
+					endwin();
+					curl_global_cleanup();				/* curl closed,clean up */
+					unlink(".twit_ui_db");
+					return 1;
+				}
+d125 1
+d130 1
+a130 1
+	return 0;
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@a7 1
+	char *temp_file_name = "/update.xml";
+a8 1
+	char *dir;
+a10 1
+	struct dir home;
+a13 1
+
+a37 10
+	/* making the directory and then completing the xmls name */
+	home = make_dir();
+	dir = malloc(home.dir_len + strlen(temp_file_name));
+	strcpy(dir,home.dir_name);
+	strcat(dir,temp_file_name);
+
+	/*printw("%s",dir);
+	refresh();
+	sleep(3);*/
+
+a41 1
+		unlink(dir);
+a42 1
+		free(dir);
+a61 1
+		free(dir);
+d67 1
+a67 1
+	if(update(user,time_line,dir,error,main_pad)){
+a74 1
+		free(dir);
+d91 1
+a91 1
+				if(update(user,xml_to_download,dir,error,main_pad)){
+a98 1
+					free(dir);
+a112 1
+					free(dir);
+d118 1
+a118 1
+					if(update(user,xml_to_download,dir,error,main_pad)){
+a125 1
+						free(dir);
+a142 1
+					free(dir);
+d147 1
+a147 1
+				if(update(user,xml_to_download,dir,error,main_pad)){
+a154 1
+					free(dir);
+a168 1
+					free(dir);
+d173 1
+a173 1
+				if(update(user,xml_to_download,dir,error,main_pad)){
+a180 1
+					free(dir);
+a210 1
+	unlink(dir);
+a211 1
+	free(dir);
+@

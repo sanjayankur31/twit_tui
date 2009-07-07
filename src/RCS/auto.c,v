@@ -1,0 +1,463 @@
+head	1.20;
+access;
+symbols;
+locks; strict;
+comment	@ * @;
+
+
+1.20
+date	2009.06.17.15.47.28;	author Ankur;	state Exp;
+branches;
+next	1.19;
+
+1.19
+date	2009.06.16.19.43.29;	author Ankur;	state Exp;
+branches;
+next	1.18;
+
+1.18
+date	2009.05.24.18.39.19;	author Ankur;	state Exp;
+branches;
+next	1.17;
+
+1.17
+date	2009.05.24.18.32.31;	author Ankur;	state Exp;
+branches;
+next	1.16;
+
+1.16
+date	2009.05.24.18.29.44;	author Ankur;	state Exp;
+branches;
+next	1.15;
+
+1.15
+date	2009.05.24.18.27.59;	author Ankur;	state Exp;
+branches;
+next	1.14;
+
+1.14
+date	2009.05.24.18.20.21;	author Ankur;	state Exp;
+branches;
+next	1.13;
+
+1.13
+date	2009.05.24.18.19.48;	author Ankur;	state Exp;
+branches;
+next	1.12;
+
+1.12
+date	2009.05.24.18.17.46;	author Ankur;	state Exp;
+branches;
+next	1.11;
+
+1.11
+date	2009.05.24.18.17.02;	author Ankur;	state Exp;
+branches;
+next	1.10;
+
+1.10
+date	2009.05.24.18.15.40;	author Ankur;	state Exp;
+branches;
+next	1.9;
+
+1.9
+date	2009.05.24.18.14.51;	author Ankur;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2009.05.24.18.14.34;	author Ankur;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2009.05.24.18.12.09;	author Ankur;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2009.05.24.18.10.01;	author Ankur;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2009.05.24.18.03.57;	author Ankur;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2009.05.24.17.56.36;	author Ankur;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2009.05.24.17.49.14;	author Ankur;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2009.05.24.17.48.27;	author Ankur;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2009.05.24.17.46.31;	author Ankur;	state Exp;
+branches;
+next	;
+
+
+desc
+@for auto authentication and proxy settings etc..
+@
+
+
+1.20
+log
+@*** empty log message ***
+@
+text
+@/* for autologin and proxy support
+ * make a file ~/.twit_tui and ill parse it and fill the user struct up
+ * data is in plain text so make sure only your user has access
+ * */
+
+#include "auto.h"
+
+int parse_file(infostruct *user){
+	FILE *conf_handle;
+	char *home;
+	char *buff_lval;
+	char *buff_rval;
+
+	char *conf_file = "twit_tui.conf";
+	int i;
+	
+	if((home = (char *) malloc(50)) == NULL)
+		return E_MALLOC;
+
+	sprintf(home,"%s/%s",getenv("HOME"),conf_file);
+	
+	/* only if there's a file */
+
+	
+	if((conf_handle = fopen(home,"r")) == NULL){
+		free(home);
+		if(errno == ENOENT)
+			return ENOENT;
+		else 
+			return errno;
+	}
+	else {	
+		clear();
+		printw("Conf file found..");
+		refresh();
+		sleep(1);
+		printw("\nPlease wait..Parsing");
+		refresh();
+
+		if((buff_lval = (char *) malloc(50)) == NULL)
+			return E_MALLOC;
+		if((buff_rval = (char *) malloc(50)) == NULL)
+			return E_MALLOC;
+
+		while (!feof(conf_handle)){
+
+			strcpy(buff_lval,"0");
+			strcpy(buff_rval,"0");
+			/* username */
+			fscanf(conf_handle,"%s = %s",buff_lval,buff_rval);
+
+			if(!(strncmp("username",buff_lval,strlen("username")))){
+				strcpy(user->username,buff_rval);
+				printw("\nFound Username : %s",user->username);
+				refresh();
+			}
+			if(!(strncmp("proxy",buff_lval,strlen("proxy")))){
+				strcpy(user->proxy,buff_rval);
+				printw("\nFound Proxy : %s",user->proxy);
+				refresh();
+			}
+			if(!(strncmp("proxy_username",buff_lval,strlen("proxy_username")))){
+				strcpy(user->proxy_username,buff_rval);
+				printw("\nFound Proxy Username : %s",user->proxy_username);
+				refresh();
+			}
+			if(!(strncmp("proxy_port",buff_lval,strlen("proxy_port")))){
+				strcpy(user->proxy_port,buff_rval);
+				printw("\nFound Username : %s",user->proxy_port);
+				refresh();
+			}
+
+			if(!(strncmp("password",buff_lval,strlen("password")))){
+				strcpy(user->password,buff_rval);
+				printw("\nFound Password : ");
+				/* just for nuts */
+				for(i = 0; i < (int)strlen(user->password); i++){
+					usleep(50000);
+					printw("*");
+					refresh();
+				}
+			}
+			if(!(strncmp("proxy_password",buff_lval,strlen("proxy_password")))){
+				strcpy(user->proxy_password,buff_rval);
+				printw("\nFound Proxy Password : ");
+				/* just for nuts */
+				for(i = 0; i < (int)strlen(user->proxy_password); i++){
+					usleep(50000);
+					printw("*");
+					refresh();
+				}
+			}
+
+		}
+	}
+	free(buff_lval);
+	free(buff_rval);
+
+/*	printw("%s:%slalalala",user->username,user->password);
+	refresh();
+	sleep(2);
+	*/
+
+	return 0;
+}
+
+
+
+
+
+@
+
+
+1.19
+log
+@*** empty log message ***
+@
+text
+@d51 1
+d57 15
+a72 1
+			fscanf(conf_handle,"%s = %s",buff_lval,buff_rval);
+d83 10
+@
+
+
+1.18
+log
+@*** empty log message ***
+@
+text
+@d15 1
+d47 2
+a48 1
+			
+d53 2
+d60 7
+d68 1
+@
+
+
+1.17
+log
+@*** empty log message ***
+@
+text
+@d33 4
+a36 1
+		printw("Conf file found..\nPlease wait..\nReading data from file");
+@
+
+
+1.16
+log
+@*** empty log message ***
+@
+text
+@d31 3
+a33 2
+	else {
+		mvprintw(1,1,"reading data from conffile");
+@
+
+
+1.15
+log
+@works for autoauthentication
+@
+text
+@d32 3
+a45 1
+				printw("%s=%s",buff_lval,buff_rval);
+@
+
+
+1.14
+log
+@*** empty log message ***
+@
+text
+@d41 10
+a50 7
+			fscanf(conf_handle,"%s=\"%s\"",buff_lval,buff_rval);
+			if(!(strncmp("username",buff_lval,strlen("username"))))
+				strcpy(buff_rval,user->username);
+
+			fscanf(conf_handle,"%s=\"%s\"",buff_lval,buff_rval);
+			if(!(strncmp("password",buff_lval,strlen("password"))))
+				strcpy(buff_rval,user->password);
+@
+
+
+1.13
+log
+@*** empty log message ***
+@
+text
+@d53 1
+a53 1
+/*	printw("%s:%slalalala",user->username,user->password);*/
+d56 1
+@
+
+
+1.12
+log
+@*** empty log message ***
+@
+text
+@d43 1
+a43 1
+				strcpy(user->username,buff_rval);
+d47 1
+a47 1
+				strcpy(user->password,buff_rval);
+d53 1
+a53 1
+	printw("%s:%slalalala",user->username,user->password);
+@
+
+
+1.11
+log
+@debug
+@
+text
+@d53 1
+a53 1
+	printw(stdscr,"%s:%slalalala",user->username,user->password);
+@
+
+
+1.10
+log
+@*** empty log message ***
+@
+text
+@d53 2
+a54 1
+	printf("%s:%slalalala",user->username,user->password);
+@
+
+
+1.9
+log
+@*** empty log message ***
+@
+text
+@d54 1
+@
+
+
+1.8
+log
+@*** empty log message ***
+@
+text
+@a52 2
+	clear();
+	refresh();
+@
+
+
+1.7
+log
+@*** empty log message ***
+@
+text
+@d53 3
+a55 1
+	printf("%s:%s",user->username,user->password);
+@
+
+
+1.6
+log
+@*** empty log message ***
+@
+text
+@d53 2
+@
+
+
+1.5
+log
+@*** empty log message ***
+@
+text
+@d32 5
+a38 4
+			if((buff_lval = (char *) malloc(50)) == NULL)
+				return E_MALLOC;
+			if((buff_rval = (char *) malloc(50)) == NULL)
+				return E_MALLOC;
+@
+
+
+1.4
+log
+@added doublequotes.. trying to make the parsing work..
+@
+text
+@d46 1
+a46 1
+				strcpy(user->username,buff_rval);
+@
+
+
+1.3
+log
+@changed the conf file..
+@
+text
+@d40 1
+a40 1
+			fscanf(conf_handle,"%s=%s",buff_lval,buff_rval);
+d44 1
+a44 1
+			fscanf(conf_handle,"%s=%s",buff_lval,buff_rval);
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d14 1
+a14 1
+	char *conf_file = ".twit_tui";
+d19 1
+a19 1
+	sprintf(home,"%s/%s",getenv("HOME"),".twit_tui");
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d19 1
+a19 1
+	sprintf(home,"%s/%s",getenv("HOME"),twit_tui);
+@

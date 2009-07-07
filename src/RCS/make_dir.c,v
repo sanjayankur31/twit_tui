@@ -1,0 +1,46 @@
+head	1.1;
+access;
+symbols;
+locks; strict;
+comment	@ * @;
+
+
+1.1
+date	2009.05.16.20.20.53;	author Ankur;	state Exp;
+branches;
+next	;
+
+
+desc
+@makes the app dir
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@#include "make_dir.h"
+
+struct dir make_dir(){
+	char *dir_name = ".twit_tui";
+	struct dir home;
+	
+
+	/* creating the  app homedir */
+
+	sprintf(home.dir_name,"%s/%s",getenv("HOME"),dir_name);
+
+	home.dir_len = strlen(home.dir_name);
+
+	if(!mkdir(home.dir_name,0733)){
+	/*	printf("directory created\n");*/
+	}
+
+	/*if(errno == EEXIST)
+		printf("Directory already exists\n");*/
+
+	return (home);	/* returns the final dir name */
+}
+@

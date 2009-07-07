@@ -1,0 +1,112 @@
+/* implement linked list again.. uve fucked up somewhere in it. */
+
+#include "xml_parser_dm.h"
+
+#include <curses.h>
+#include <unistd.h>
+
+
+int xml_parse_dm (int stat,struct MemoryStruct chunk, char *error){
+	xmlNode *cur_node, *child_node, *g_child_node;
+	xmlChar *created_at,*id,*text;
+	xmlChar *ds_id,*ds_screen_name,*dr_id,*dr_screen_name;
+	xmlDocPtr doc;
+	dm_list temp_node;
+	int ret_code;	
+	xmlNode *root = NULL;
+	
+	/*doc = xmlReadFile(file_name,"UTF-8",XML_PARSE_PEDANTIC);*/
+	doc = xmlRecoverMemory(chunk.memory,chunk.size);
+
+	if (doc == NULL){
+		printw("Could not parse");
+		return 0;
+	}
+
+	root = xmlDocGetRootElement(doc);
+
+	if( !root || !root->name || xmlStrcmp(root->name,(const xmlChar *)"direct-messages")){
+		xmlFreeDoc(doc);
+		return 0;
+	}
+
+	
+
+	for(cur_node = root->children; cur_node != NULL; cur_node = cur_node->next){
+		/* entered one "status" node */
+		
+		if (cur_node->type == XML_ELEMENT_NODE  && !xmlStrcmp(cur_node->name, (const xmlChar *) "direct_message")){
+			/* entering "status"'s children */
+			for(child_node = cur_node->children; child_node != NULL; child_node = child_node->next){
+				/* "created_at" */
+				if (child_node->type == XML_ELEMENT_NODE  && !xmlStrcmp(child_node->name, (const xmlChar *)"created_at")){
+					/*printf("   Child=%s\n", child_node->name);*/
+					created_at = xmlNodeGetContent(child_node);
+					if(created_at) asprintf(&(temp_node.d_created_at),"%s",created_at);
+					/* error checking 
+					printw("%s",temp_node.t_created_at);
+					refresh();
+					sleep(2);
+					*/
+					xmlFree(created_at);
+				}
+				if (child_node->type == XML_ELEMENT_NODE  && !xmlStrcmp(child_node->name, (const xmlChar *)"id")){
+					/*printf("   Child=%s\n", child_node->name);*/
+					id = xmlNodeGetContent(child_node);
+					if(id) asprintf(&(temp_node.d_id),"%s",id);
+					xmlFree(id);
+				}
+				if (child_node->type == XML_ELEMENT_NODE  && !xmlStrcmp(child_node->name, (const xmlChar *)"text")){
+					/*printf("   Child=%s\n", child_node->name);*/
+					text = xmlNodeGetContent(child_node);
+					if(text) asprintf(&(temp_node.d_text),"%s",text);
+					xmlFree(text);
+				}
+				if (child_node->type == XML_ELEMENT_NODE  && !xmlStrcmp(child_node->name, (const xmlChar *)"sender")){
+					/*printf("User Info :\n");*/
+					for(g_child_node = child_node->children; g_child_node != NULL; g_child_node = g_child_node->next){
+
+						if (g_child_node->type == XML_ELEMENT_NODE  && !xmlStrcmp(g_child_node->name, (const xmlChar *)"id")){
+							/*printf("   Child=%s\n", g_child_node->name);*/
+							ds_id = xmlNodeGetContent(g_child_node);
+							if(ds_id) asprintf(&(temp_node.ds_id),"%s",ds_id);
+							xmlFree(ds_id);
+						}
+						if (g_child_node->type == XML_ELEMENT_NODE  && !xmlStrcmp(g_child_node->name, (const xmlChar *)"screen_name")){
+							/*printf("   Child=%s\n", g_child_node->name);*/
+							ds_screen_name = xmlNodeGetContent(g_child_node);
+							if(ds_screen_name) asprintf(&(temp_node.ds_screen_name),"%s",ds_screen_name);
+							xmlFree(ds_screen_name);
+						}
+					}
+				}
+				if (child_node->type == XML_ELEMENT_NODE  && !xmlStrcmp(child_node->name, (const xmlChar *)"recipient")){
+					/*printf("User Info :\n");*/
+					for(g_child_node = child_node->children; g_child_node != NULL; g_child_node = g_child_node->next){
+
+						if (g_child_node->type == XML_ELEMENT_NODE  && !xmlStrcmp(g_child_node->name, (const xmlChar *)"id")){
+							/*printf("   Child=%s\n", g_child_node->name);*/
+							dr_id = xmlNodeGetContent(g_child_node);
+							if(dr_id) asprintf(&(temp_node.dr_id),"%s",dr_id);
+							xmlFree(dr_id);
+						}
+						if (g_child_node->type == XML_ELEMENT_NODE  && !xmlStrcmp(g_child_node->name, (const xmlChar *)"screen_name")){
+							/*printf("   Child=%s\n", g_child_node->name);*/
+							dr_screen_name = xmlNodeGetContent(g_child_node);
+							if(dr_screen_name) asprintf(&(temp_node.dr_screen_name),"%s",dr_screen_name);
+							xmlFree(dr_screen_name);
+						}
+					}
+				}
+			}
+			if((ret_code = db_put_data_dm(stat,temp_node))) {
+				strcpy(error,"Error putting data to db");
+				return ret_code;
+			}
+		}
+	}
+	xmlFreeDoc(doc);
+	xmlCleanupParser();
+	
+	return 0;
+}

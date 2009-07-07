@@ -1,0 +1,53 @@
+Twit-tui is a command line application for twitter. 
+At current, it's a bare minimum working client that enables you to send updates, receive updates, reply and retweet.
+It's under the GPLv2+ license.
+You are free to distribute/edit the source as you wish.
+Please suggest more improvements.This is the first ever app that I've coded. Feedback is valuable.
+
+Ankur Sinha <sanjay DOT ankur AT gmail DOT com>
+
+** NAVIGATION **
+1 - Tweet window
+2 - Direct messages received
+3 - Direct messages sent
+
+** CONTROLS **
+
+u - updates tweets, direct messages
+r - reply
+t - retweet
+s - send update/direct message depending on what window you are in
+Q - quit
+D - delete tweet/direct message
+up and down arrows to scroll the tweet page
+
+
+** Conf file **
+Create a file "twit_tui.conf" in the user's home directory
+
+- - AUTOLOGIN - - 
+
+username = USERNAME
+password = PASSWORD
+proxy = PROXY
+proxy_port = PROXYPORT
+proxy_username = PROXY_USERNAME
+proxy_password = PROXY_PASSWORD
+
+** please remember the <space>. Else it won't parse correctly.
+
+Please remember that your password will be saved as plain text. Only give read permissions to the user.
+
+If the app crashes, running it again will only clear the db (not give you and interface). You'll have to run it once more to make it work.
+
+** TO Install ** 
+
+su -c 'make install'
+
+** test it **
+
+$ make  test
+
+Run it from the current directory (advised since its at a very raw stage currently)
+You can run it within gdb too and inform me of the places it crashes :)
+

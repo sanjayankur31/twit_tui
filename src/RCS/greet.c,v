@@ -1,0 +1,83 @@
+head	1.3;
+access;
+symbols;
+locks; strict;
+comment	@ * @;
+
+
+1.3
+date	2009.05.24.08.12.50;	author Ankur;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2009.05.24.08.10.03;	author Ankur;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2009.05.16.20.20.53;	author Ankur;	state Exp;
+branches;
+next	;
+
+
+desc
+@greets
+@
+
+
+1.3
+log
+@*** empty log message ***
+@
+text
+@#include "greet.h"
+
+/* greet : initial greeting */
+void greet(infostruct user){
+	WINDOW *greetwindow;
+	char *appname = "Twit-tui";
+	char *summary = "A command line Twitter client written in C.";
+
+	greetwindow = newwin(user.row,user.col,0,0);
+
+	curs_set(0);
+	/*wcolor_set(greetwindow,1,NULL);*/
+	wattron(greetwindow,A_BOLD);
+
+	mvwprintw(greetwindow,user.row/2 -10,(user.col - strlen(appname))/2,"%s",appname);
+	mvwprintw(greetwindow,user.row/2 -9,(user.col -strlen(summary))/2,"%s",summary);
+
+	wrefresh(greetwindow);
+	sleep(2);
+	wattroff(greetwindow,A_BOLD);
+
+	curs_set(1);
+	delwin(greetwindow);
+	
+}
+
+
+@
+
+
+1.2
+log
+@added nod
+@
+text
+@a7 1
+	char *nod = "Powered by Twitter";
+a16 1
+	mvwprintw(greetwindow,user.row/2 -8,(user.col -strlen(nod))/2,"%s",nod);
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d8 1
+d18 1
+@

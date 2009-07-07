@@ -1,0 +1,11 @@
+* June 17 2009 Ankur Sinha <ankursinha AT fedoraproject DOT org >
+- 1.0
+- Direct messaging
+- Deleting tweets/dms
+- automatic sign in
+- proxy support
+
+* May 24 2009 Ankur Sinha < ankursinha AT fedoraproject DOT org > - 'bare_release'-2
+- Improved the send update and reply interfaces
+- Is quicker and than the 'bare_release'-1 : directly channeled the data for parsing instead of a temp file
+- Working on errors ( if you give a bad username password for example,you get a blank page as result currently ^_^).Will be fixed in the next 'bare_release'

@@ -1,0 +1,91 @@
+head	1.1;
+access;
+symbols;
+locks; strict;
+comment	@ * @;
+
+
+1.1
+date	2009.06.17.12.08.54;	author Ankur;	state Exp;
+branches;
+next	;
+
+
+desc
+@favs.. incomplete..
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@#include "fav.h"
+
+int fav(infostruct user,char *error){
+	char *url = "http://twitter.com/favorites/create/";
+	CURL *easy_handle;
+	CURLcode success;
+	int retval = 0;
+	char *url_final;
+	char sno[4];
+	double message_id = 0;
+	char *screen_name;
+	char *message;
+	char *header = "*** Favourite ***";
+	char *ask = "Sno to Favourite: ";
+	FILE *temp_file;
+	
+	if(get_sno(stat,user,sno,header,ask)){
+		refresh();
+		return 2;
+	}
+
+	screen_name = (char *)malloc(25 * sizeof(char));
+	if(screen_name == NULL){
+		return 1;
+	}
+	message = (char *)malloc(300 * sizeof(char));
+	if(message == NULL){
+		return 1;
+	}
+
+	if((message_id = get_message_id(0,sno,&screen_name,&message)) == 1)
+		return 1;
+
+	if(!(temp_file = fopen("/dev/null","w"))){
+		return 1;
+	}
+	/* debug 
+	printw("%.0f",message_id);
+	refresh();
+	sleep(2);
+	*/
+
+
+	url_final = (char*)malloc(strlen(url) + 20);
+	sprintf(url_final,"%s%.0f.xml",url,message_id);
+	
+	easy_handle = curl_easy_init();
+	curl_easy_setopt(easy_handle,CURLOPT_NOPROGRESS,1);
+	curl_easy_setopt(easy_handle,CURLOPT_VERBOSE, 0);
+	curl_easy_setopt(easy_handle,CURLOPT_URL,url_final);
+	curl_easy_setopt(easy_handle,CURLOPT_HTTPAUTH,CURLAUTH_ANY);
+	curl_easy_setopt(easy_handle,CURLOPT_ERRORBUFFER,error);
+	curl_easy_setopt(easy_handle,CURLOPT_USERNAME,user.username);
+	curl_easy_setopt(easy_handle,CURLOPT_PASSWORD,user.password);
+	curl_easy_setopt(easy_handle,CURLOPT_WRITEDATA,temp_file);	
+	if((success = curl_easy_perform(easy_handle)))
+		retval = 1;
+	
+	curl_easy_cleanup(easy_handle);
+
+	free(screen_name);
+	/*free(status_send);*/
+	fclose(temp_file);
+	refresh();
+	return retval;
+
+}
+@
